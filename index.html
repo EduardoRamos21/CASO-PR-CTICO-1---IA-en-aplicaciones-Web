@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Piedra · Papel · Tijera — TM local (partida a 3)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700&family=Press+Start+2P&display=swap');
+    
+    :root{
+      --bg:#f0f4ff;
+      --panel:#ffffff;
+      --text:#333333;
+      --brand:#4f46e5;
+      --good:#10b981;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --muted:#6366f1;
+      --accent:#8b5cf6;
+      --shadow: rgba(79, 70, 229, 0.2);
+    }
+    
+    *{box-sizing:border-box} 
+    
+    body{
+      margin:0;
+      font-family:'Rubik', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:#f0f4ff url('data:image/svg+xml;utf8,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="%23f0f4ff"/><circle cx="10" cy="10" r="2" fill="%23e0e7ff"/><circle cx="30" cy="10" r="2" fill="%23e0e7ff"/><circle cx="50" cy="10" r="2" fill="%23e0e7ff"/><circle cx="10" cy="30" r="2" fill="%23e0e7ff"/><circle cx="30" cy="30" r="2" fill="%23e0e7ff"/><circle cx="50" cy="30" r="2" fill="%23e0e7ff"/><circle cx="10" cy="50" r="2" fill="%23e0e7ff"/><circle cx="30" cy="50" r="2" fill="%23e0e7ff"/><circle cx="50" cy="50" r="2" fill="%23e0e7ff"/></svg>');
+      color:var(--text);
+    }
+    
+    header{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      padding:14px 18px;
+      background:linear-gradient(180deg, var(--panel), rgba(255,255,255,0.9));
+      position:sticky;
+      top:0;
+      backdrop-filter:blur(6px);
+      z-index:10;
+      border-bottom: 2px solid var(--accent);
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+    
+    .badge{
+      padding:6px 12px;
+      border-radius:999px;
+      background:var(--brand);
+      color:#fff;
+      font-weight:700;
+      font-size:12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 4px var(--shadow);
+    }
+    
+    h1{
+      margin:0;
+      font-size:20px;
+      color: var(--brand);
+      text-shadow: 1px 1px 0 var(--shadow);
+    }
+    
+    .container{
+      max-width:1200px;
+      margin:24px auto;
+      padding:0 16px;
+    }
+    
+    .grid{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:24px;
+    }
+    
+    .panel{
+      background:var(--panel);
+      border:2px solid var(--accent);
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:0 10px 30px var(--shadow);
+      transition: transform 0.3s ease;
+    }
+    
+    .panel:hover {
+      transform: translateY(-5px);
+    }
+    
+    .panel header{
+      background:linear-gradient(90deg, var(--brand), var(--accent));
+      padding:12px 18px;
+      color: white;
+      border-bottom: none;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    
+    #videoWrap{
+      position:relative;
+      aspect-ratio:16/9;
+      background:#e0e7ff;
+      border-bottom: 2px dashed var(--accent);
+    }
+    
+    #webcam-container {
+      width: 100%;
+      height: 100%;
+    }
+    
+    #webcam-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover;
+    }
+    
+    #webcam{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      transform:scaleX(-1);
+      opacity:.75;
+      border-radius: 8px;
+    }
+    
+    #board{
+      position:relative;
+      display:block;
+      width:100%;
+      height:auto;
+      aspect-ratio:16/9;
+      background:#e0e7ff;
+      border-radius:0 0 16px 16px;
+      border-bottom: 2px solid var(--accent);
+    }
+    
+    .controls{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      padding:14px 18px;
+      border-top:1px solid rgba(99, 102, 241, 0.2);
+      flex-wrap:wrap;
+      background: linear-gradient(to bottom, rgba(240, 244, 255, 0.5), rgba(224, 231, 255, 0.5));
+    }
+    
+    button, select, input{
+      background:var(--panel);
+      border:2px solid var(--brand);
+      color:var(--brand);
+      padding:10px 16px;
+      border-radius:12px;
+      font-weight:600;
+      font-family: 'Rubik', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px var(--shadow);
+    }
+    
+    button:hover{
+      border-color:var(--accent);
+      transform:translateY(-3px);
+      box-shadow: 0 4px 8px var(--shadow);
+      color: var(--accent);
+    }
+    
+    .hint{
+      font-size:13px;
+      opacity:.9;
+      color: var(--brand);
+    }
+    
+    .alert{
+      display:none;
+      margin:0;
+      padding:12px 14px;
+      border-top:1px solid rgba(99, 102, 241, 0.2);
+      background:rgba(239,68,68,.08);
+      color:#ef4444;
+      border-radius: 8px;
+      margin: 8px;
+    }
+    
+    .alert.warn{
+      background:rgba(245,158,11,.1);
+      color:#f59e0b;
+    }
+    
+    .alert.show{
+      display:block;
+    }
+    
+    .bar{
+      height:10px;
+      background:#e0e7ff;
+      border-radius:6px;
+      overflow:hidden;
+      border: 1px solid var(--muted);
+    }
+    
+    .bar>span{
+      display:block;
+      height:100%;
+      background:linear-gradient(90deg, var(--brand), var(--accent));
+      border-radius: 4px;
+      box-shadow: 0 0 8px var(--accent);
+    }
+    
+    #label-container {
+      padding: 16px !important;
+      background: linear-gradient(to bottom, rgba(240, 244, 255, 0.8), rgba(224, 231, 255, 0.8));
+      border-radius: 0 0 14px 14px;
+    }
+    
+    #btnStart, #btnReset, #btnPause {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 12px 18px;
+    }
+    
+    #btnStart {
+      background: var(--good);
+      color: white;
+      border-color: var(--good);
+    }
+    
+    #btnReset {
+      background: var(--warn);
+      color: white;
+      border-color: var(--warn);
+    }
+    
+    #btnPause {
+      background: var(--muted);
+      color: white;
+      border-color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="badge">AI + Web</span>
+    <h1>Piedra · Papel · Tijera — 1 ronda a 3 (modelo local /modelo)</h1>
+  </header>
+
+  <div class="container">
+    <div class="grid">
+      <!-- Panel Modelo + Cámara -->
+      <section class="panel">
+        <header><strong>Modelo local y cámara</strong></header>
+        <div id="videoWrap">
+          <!-- El canvas del tmImage.Webcam se insertará aquí -->
+          <div id="webcam-container"></div>
+        </div>
+        <div class="controls">
+          <button id="btnCam">Permitir cámara</button>
+          <button id="btnTest">Modo Prueba (teclas 1/2/3)</button>
+          <span class="hint">Sirve por HTTPS o <code>localhost</code> para usar la cámara.</span>
+        </div>
+        <div id="alert" class="alert"></div>
+        <div id="label-container" style="padding:12px 14px"></div>
+      </section>
+
+      <!-- Panel Juego -->
+      <section class="panel">
+        <header style="display:flex;align-items:center;justify-content:space-between">
+          <strong>Juego</strong>
+          <div class="hint">Cuenta regresiva por juego · Mejor de 3</div>
+        </header>
+        <canvas id="board"></canvas>
+        <div class="controls">
+          <button id="btnStart">Iniciar partida (1 ronda · 3 juegos)</button>
+          <button id="btnPause">Pausar</button>
+          <button id="btnReset">Reiniciar</button>
+          <label class="hint">Confianza mínima
+            <input id="th" type="range" min="0.4" max="0.95" step="0.01" value="0.7"/>
+          </label>
+          <span class="hint">Atajos: [Space] Pausa/Reanuda · [R] Reinicia · [1/2/3] Prueba</span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Librerías TM / TFJS -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+  <script>
+  // ===================== Utilidad y layout =====================
+  const $ = s => document.querySelector(s);
+  const alertBox = $('#alert');
+  function showAlert(msg, type='error'){ alertBox.className = 'alert show' + (type==='warn'?' warn':''); alertBox.innerHTML = msg; }
+  function clearAlert(){ alertBox.className='alert'; alertBox.textContent=''; }
+
+  const board = $('#board'); const bCtx = board.getContext('2d');
+  function fitBoard(){ const r=board.parentElement.getBoundingClientRect(); board.width=Math.floor(r.width); board.height=Math.floor(r.width*9/16); }
+  addEventListener('resize', fitBoard); fitBoard();
+
+  // ===================== Modelo / Cámara (TM) =====================
+  const URL = "/modelo/"; // ⬅️ tu carpeta local con model.json / metadata.json / weights.bin
+  let model, maxPredictions=0, labels=[];
+  let webcam=null, usingCamera=false, testMode=false;
+  let lastPred=[0,0,0];        // últimas probabilidades
+  const predHistory=[]; const MAX_HIST=24; // historial para promediado
+
+  async function loadModel(){
+    clearAlert();
+    try{
+      const modelURL = URL + "model.json";
+      const metadataURL = URL + "metadata.json";
+      model = await tmImage.load(modelURL, metadataURL);
+      maxPredictions = model.getTotalClasses();
+      labels = (model.getClassLabels && model.getClassLabels()) || Array.from({length:maxPredictions},(_,i)=>'Clase '+i);
+      if(maxPredictions < 3) showAlert('El modelo debe tener 3 clases: Piedra, Papel y Tijera. Encontradas: '+maxPredictions, 'warn');
+      renderBars([0,0,0], labels);
+    }catch(e){
+      console.error(e);
+      showAlert('No se pudo cargar el modelo desde /modelo/. Verifica rutas y que el servidor sirva esos archivos. '+e.message);
+    }
+  }
+
+  async function requestCam(){
+    clearAlert();
+    const isSecure = isSecureContext || location.protocol==='https:' || location.hostname==='localhost';
+    if(!isSecure){ showAlert('La cámara requiere contexto seguro. Usa HTTPS o <code>localhost</code>.','warn'); return; }
+    try{
+      const flip = true;
+      webcam = new tmImage.Webcam(640, 480, flip); // Aumentado el tamaño para mejor calidad
+      await webcam.setup(); // permiso
+      await webcam.play();
+      usingCamera = true; testMode = false;
+      $('#webcam-container').innerHTML = '';
+      $('#webcam-container').appendChild(webcam.canvas);
+      requestAnimationFrame(loop);
+    }catch(err){
+      console.error(err);
+      if(err && err.name === 'NotAllowedError'){ showAlert('Permiso de cámara denegado. Concede acceso en el candado y recarga.'); }
+      else { showAlert('No se pudo iniciar la cámara: '+(err?.message||'desconocido')); }
+    }
+  }
+
+  async function loop(){
+    if(webcam){ webcam.update(); }
+    await predict();
+    requestAnimationFrame(loop);
+  }
+
+  async function predict(){
+    if(!model) return;
+    let pred = [0,0,0];
+    try{
+      if(usingCamera && webcam){
+        const r = await model.predict(webcam.canvas);
+        pred = r.map(p=>p.probability);
+      } else if(testMode){
+        pred = testOneHot.slice();
+      }
+      lastPred = pred;
+      predHistory.push(pred);
+      if(predHistory.length>MAX_HIST) predHistory.shift();
+      renderBars(pred, labels);
+    }catch(e){
+      console.error('predict error', e);
+    }
+  }
+
+  function renderBars(pred, labels){
+    const box = $('#label-container');
+    let html = '';
+    for(let i=0;i<pred.length;i++){
+      const name = labels[i] ?? ('Clase '+i);
+      const p = (pred[i]*100).toFixed(1);
+      html += `<div style="margin:6px 0">${name}: ${p}%<div class="bar"><span style="width:${p}%"></span></div></div>`;
+    }
+    box.innerHTML = html;
+  }
+
+  // ===================== Juego P·P·T — 1 ronda a 3 =====================
+  const btnStart = $('#btnStart'); const btnPause = $('#btnPause'); const btnReset = $('#btnReset');
+  const th = $('#th');
+
+  const CHOICES = ['Piedra','Papel','Tijera'];
+  const GAMES_PER_ROUND = 3;
+
+  let controllerId = 0;
+  const state = { running:false, paused:false, finished:false, game:1, gamesScore:{player:0,cpu:0} };
+
+  function mapPredictionToChoice(pred){
+    const idx = pred.indexOf(Math.max(...pred));
+    return CHOICES[idx] ?? 'Desconocido';
+  }
+
+  function decide(player, cpu){
+    if(player===cpu) return 'Empate';
+    if((player==='Piedra'&&cpu==='Tijera')||(player==='Papel'&&cpu==='Piedra')||(player==='Tijera'&&cpu==='Papel')) return 'Ganas';
+    return 'Pierdes';
+  }
+
+  function drawBoard(extra){
+    const w=board.width,h=board.height; bCtx.clearRect(0,0,w,h);
+    bCtx.fillStyle='#e0e7ff'; bCtx.fillRect(0,0,w,h);
+    bCtx.fillStyle='#333333'; bCtx.font='18px "Rubik", ui-sans-serif,system-ui';
+    bCtx.fillText(`Juego ${state.game}/${GAMES_PER_ROUND} (partida a 3)`, 16, 26);
+    bCtx.fillText(`Marcador · Tú: ${state.gamesScore.player}  CPU: ${state.gamesScore.cpu}`, 16, 48);
+    if(state.paused){ bCtx.fillStyle = '#f59e0b'; bCtx.fillText('PAUSA', 16, 70); }
+
+    if(extra?.countdown!=null){
+      bCtx.textAlign='center'; bCtx.fillStyle= '#4f46e5'; bCtx.font='72px "Press Start 2P", ui-sans-serif,system-ui';
+      bCtx.fillText(extra.countdown.toString(), w/2, h/2);
+      bCtx.textAlign='start';
+    }
+
+    if(extra?.result){
+      const {player,cpu,res} = extra.result;
+      const cx=w/2; const y=h/2-10;
+      bCtx.textAlign='center';
+      bCtx.fillStyle='rgba(79, 70, 229, 0.15)'; 
+      
+      // Jugador
+      bCtx.fillRect(cx-250, y-60, 200, 120); 
+      bCtx.strokeStyle = '#4f46e5';
+      bCtx.lineWidth = 3;
+      bCtx.strokeRect(cx-250, y-60, 200, 120);
+      
+      // CPU
+      bCtx.fillRect(cx+50, y-60, 200, 120);
+      bCtx.strokeRect(cx+50, y-60, 200, 120);
+      
+      bCtx.fillStyle='#333333'; bCtx.font='22px "Rubik", ui-sans-serif,system-ui';
+      bCtx.fillText('Tú', cx-150, y-25); bCtx.fillText('CPU', cx+150, y-25);
+      bCtx.font='28px "Press Start 2P", ui-sans-serif,system-ui'; 
+      bCtx.fillStyle = '#4f46e5';
+      bCtx.fillText(player, cx-150, y+20); bCtx.fillText(cpu, cx+150, y+20);
+      bCtx.textAlign='start';
+      bCtx.font='28px "Press Start 2P", ui-sans-serif,system-ui'; 
+      const color = res==='Ganas'? '#10b981' : res==='Pierdes' ? '#ef4444' : '#6366f1'; 
+      bCtx.fillStyle=color; 
+      bCtx.fillText(res, 20, h-20);
+    }
+
+    if(extra?.banner){
+      bCtx.textAlign='center'; 
+      // Reducir el tamaño de la fuente para que quepa mejor
+      bCtx.font='22px "Press Start 2P", ui-sans-serif,system-ui'; 
+      bCtx.fillStyle=extra.bannerColor||'#6366f1';
+      
+      // Sombra para efecto arcade
+      bCtx.shadowColor = 'rgba(0,0,0,0.3)';
+      bCtx.shadowBlur = 3;
+      bCtx.shadowOffsetX = 2;
+      bCtx.shadowOffsetY = 2;
+      
+      // Ajustar el texto para que quepa mejor
+      const bannerText = extra.banner;
+      const maxWidth = w * 0.9; // 90% del ancho disponible
+      
+      // Medir el ancho del texto
+      const textWidth = bCtx.measureText(bannerText).width;
+      
+      // Si el texto es demasiado ancho, reducir aún más la fuente
+      if (textWidth > maxWidth) {
+        bCtx.font='18px "Press Start 2P", ui-sans-serif,system-ui';
+      }
+      
+      bCtx.fillText(bannerText, w/2, h*0.8);
+      
+      // Resetear sombra
+      bCtx.shadowColor = 'transparent';
+      bCtx.shadowBlur = 0;
+      bCtx.shadowOffsetX = 0;
+      bCtx.shadowOffsetY = 0;
+      
+      bCtx.textAlign='start';
+    }
+  }
+
+  function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+  async function waitWhilePaused(id){ while(state.paused && state.running && id===controllerId){ await sleep(120); } }
+
+  function getAveragedPrediction(){
+    if(testMode) return testOneHot.slice();
+    if(predHistory.length===0) return lastPred.slice();
+    const n = Math.min(predHistory.length, 12);
+    const arr = predHistory.slice(-n);
+    const avg = new Array(arr[0].length).fill(0);
+    for(const p of arr){ for(let i=0;i<p.length;i++){ avg[i]+=p[i]; } }
+    for(let i=0;i<avg.length;i++){ avg[i]/=n; }
+    return avg;
+  }
+
+  async function countdown3(id){
+    for(let c=3;c>=1;c--){
+      drawBoard({countdown:c});
+      for(let i=0;i<7;i++){ await sleep(100); await waitWhilePaused(id); if(!state.running || id!==controllerId) return false; }
+    }
+    drawBoard();
+    return true;
+  }
+
+  async function playSingleGame(id){
+    const ok = await countdown3(id); if(!ok) return null;
+    const pred = getAveragedPrediction();
+    const conf = Math.max(...pred); const thr = parseFloat(th.value);
+    if(conf < thr){
+      showAlert(`Confianza baja: ${(conf*100).toFixed(1)}% < ${(thr*100).toFixed(0)}%. Se repetirá el juego.`, 'warn');
+      drawBoard({banner:'Confianza baja, repite el gesto', bannerColor:'#f59e0b'});
+      await sleep(900); clearAlert();
+      return await playSingleGame(id); // reintenta el mismo juego
+    }
+    const player = mapPredictionToChoice(pred);
+    const cpu = CHOICES[Math.floor(Math.random()*3)];
+    const res = decide(player,cpu);
+    if(res==='Ganas') state.gamesScore.player++; else if(res==='Pierdes') state.gamesScore.cpu++;
+    drawBoard({result:{player,cpu,res}});
+    await sleep(1200);
+    return res;
+  }
+
+  async function runMatch(){
+    const id = ++controllerId;
+    state.running=true; state.finished=false; state.paused=false; state.game=1; state.gamesScore.player=0; state.gamesScore.cpu=0; drawBoard();
+    for(; state.game<=GAMES_PER_ROUND; state.game++){
+      await waitWhilePaused(id); if(!state.running || id!==controllerId) return;
+      await playSingleGame(id);
+    }
+    let banner, color;
+    if(state.gamesScore.player > state.gamesScore.cpu){ banner='¡GANASTE!'; color='#10b981'; }
+    else if(state.gamesScore.cpu > state.gamesScore.player){ banner='CPU GANA'; color='#ef4444'; }
+    else { banner='EMPATE'; color='#93c5fd'; }
+    drawBoard({banner, bannerColor:color});
+    state.running=false; state.finished=true; state.paused=false;
+  }
+
+  function resetAll(){ state.running=false; state.paused=false; state.finished=false; state.game=1; state.gamesScore.player=0; state.gamesScore.cpu=0; drawBoard(); clearAlert(); controllerId++; }
+
+  // ===================== Modo prueba =====================
+  let testOneHot=[1,0,0];
+  function setTest(i){ testMode=true; usingCamera=false; testOneHot=[0,0,0]; testOneHot[i]=1; document.getElementById('webcam-container').innerHTML=''; showAlert('TEST MODE: usa 1/2/3 para cambiar la jugada simulada.','warn'); }
+
+  // ===================== Eventos =====================
+  document.getElementById('btnCam').addEventListener('click', requestCam);
+  document.getElementById('btnTest').addEventListener('click', ()=>{ testMode=!testMode; if(testMode){ setTest(0); } else { clearAlert(); } });
+
+  btnStart.addEventListener('click', ()=>{ if(!model && !testMode){ showAlert('Primero activa la cámara o el Modo Prueba.', 'warn'); return; } clearAlert(); if(!state.running){ runMatch(); }});
+  btnPause.addEventListener('click', ()=>{ if(!state.running) return; state.paused=!state.paused; btnPause.textContent = state.paused? 'Reanudar' : 'Pausar'; drawBoard(); });
+  btnReset.addEventListener('click', ()=>{ resetAll(); btnPause.textContent='Pausar'; });
+
+  addEventListener('keydown', (e)=>{
+    if(e.code==='Space'){ if(state.running){ btnPause.click(); } }
+    if(e.key?.toLowerCase()==='r'){ btnReset.click(); }
+    if(e.key==='1'){ setTest(0); }
+    if(e.key==='2'){ setTest(1); }
+    if(e.key==='3'){ setTest(2); }
+  });
+
+  // ===================== Inicio =====================
+  (function boot(){
+    fitBoard();
+    // Carga el modelo local automáticamente al abrir
+    loadModel();
+    // Aviso si no es contexto seguro
+    const isSecure = isSecureContext || location.protocol==='https:' || location.hostname==='localhost';
+    if(!isSecure) showAlert('Para usar la cámara, abre este archivo por HTTPS o en <code>localhost</code>. Puedes jugar con el Modo Prueba (1/2/3) sin cámara.', 'warn');
+    drawBoard();
+  })();
+
+  </script>
+</body>
+</html>
