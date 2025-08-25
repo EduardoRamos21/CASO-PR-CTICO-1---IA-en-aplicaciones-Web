@@ -300,7 +300,7 @@
   addEventListener('resize', fitBoard); fitBoard();
 
   // ===================== Modelo / Cámara (TM) =====================
-  const URL = "/modelo/"; // ⬅️ tu carpeta local con model.json / metadata.json / weights.bin
+  const URL = "./modelo/"; // SE CAMBIA PARA USAR EN GIT HUB PAGES Y EN LOCAL SE QUITA EL PUNTO
   let model, maxPredictions=0, labels=[];
   let webcam=null, usingCamera=false, testMode=false;
   let lastPred=[0,0,0];        // últimas probabilidades
